@@ -68,6 +68,9 @@ export function getFakeDocument(getFakeHead: FnWithArgs<HTMLElement, []>, option
       delete document[k];
       return true;
     },
+    getPrototypeOf() {
+      return Document.prototype;
+    },
   });
 
   return fakeDocument;

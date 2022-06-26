@@ -26,6 +26,10 @@ describe('@satumjs/midware-proxy-sandbox test', () => {
     expect(sandbox.fakeWindowName).toBe('fakeWindow1234');
     expect(sandbox.body).toBeUndefined();
 
+    const proxyDoc = new Proxy(Object.create(Document.prototype), {}) as any;
+    const watcher = new MutationObserver(jest.fn);
+    watcher.observe(proxyDoc, { attributes: true });
+
     expect(sandbox.vmContext === window[sandbox.fakeWindowName]).toBe(true);
     expect(sandbox.vmContext['DRIVE_BY_SATUMMICRO']).toBe(true);
     (getFakeDocument as any).mock.calls[0][0]();

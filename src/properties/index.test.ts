@@ -113,6 +113,7 @@ describe('property document', () => {
     expect(proxyDoc.documentElement.parentNode).toEqual(proxyDoc);
     expect((proxyDoc.documentElement as any).foo === fakeDoc.body.parentNode.foo).toBe(false);
     expect((proxyDoc.documentElement as any).bar).toBe('bar');
+    expect(proxyDoc instanceof Document).toBe(true);
   });
 
   test('proxyDocument getElementsByTagName/querySelector/querySelectorAll', () => {
