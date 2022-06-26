@@ -1,4 +1,5 @@
 jest.mock('@satumjs/async-override');
+import { FakeDocument } from '@satumjs/types';
 import { satumMicroHeadAppendChildFactory } from '@satumjs/async-override';
 import { CtxEventDB, handleWinEvent, removeAllWinEvents, getFakeLocation, getFakeHead, getFakeDocument, getFakeWindow } from '.';
 
@@ -80,21 +81,30 @@ describe('property document.head', () => {
 });
 
 describe('property document', () => {
-  test('getFakeDocument', () => {
-    const fakeDoc = {
+  let fakeDoc: any;
+  let options: any;
+  let proxyDoc: FakeDocument;
+  let spyDoc: any;
+  const getFakeHead = jest.fn();
+
+  beforeEach(() => {
+    fakeDoc = {
       body: { parentNode: { foo: jest.fn(), bar: 'bar' } },
       getElementsByTagName: jest.fn(),
       querySelector: jest.fn(),
       querySelectorAll: jest.fn(),
       xxx: 'bbb',
       foo: jest.fn(),
-    } as any;
-    const spy = jest.spyOn(window, 'document', 'get').mockImplementation(() => fakeDoc);
-    const options = { docVariable: jest.fn() };
+    };
+    options = { docVariable: jest.fn() };
+    spyDoc = jest.spyOn(window, 'document', 'get').mockImplementation(() => fakeDoc);
 
-    const getFakeHead = jest.fn();
     getFakeHead.mockReturnValue('aaa');
-    const proxyDoc = getFakeDocument(getFakeHead, options);
+    proxyDoc = getFakeDocument(getFakeHead, options);
+  });
+  afterEach(() => spyDoc.mockRestore());
+
+  test('proxyDocument head/documentElement', () => {
     expect(proxyDoc.head).toBe('aaa');
     expect((proxyDoc.head as any) === 'aaa').toBe(true);
     expect(getFakeHead).toBeCalledTimes(1);
@@ -103,13 +113,18 @@ describe('property document', () => {
     expect(proxyDoc.documentElement.parentNode).toEqual(proxyDoc);
     expect((proxyDoc.documentElement as any).foo === fakeDoc.body.parentNode.foo).toBe(false);
     expect((proxyDoc.documentElement as any).bar).toBe('bar');
+  });
 
+  test('proxyDocument getElementsByTagName/querySelector/querySelectorAll', () => {
     expect((proxyDoc.getElementsByTagName('html')[0] as any).bar).toBe(fakeDoc.body.parentNode.bar);
-    expect(proxyDoc.getElementsByTagName('head')[0]).toBe('aaa');
+    expect((proxyDoc.querySelector('html') as any).bar).toBe(fakeDoc.body.parentNode.bar);
+    expect(proxyDoc.querySelectorAll('head')[0]).toBe('aaa');
     expect(proxyDoc.querySelector('head')).toBe('aaa');
     fakeDoc.getElementsByTagName.mockReturnValueOnce(['bbb']);
     expect(proxyDoc.getElementsByTagName('xxx')).toEqual(['bbb']);
+  });
 
+  test('proxyDocument getter', () => {
     options.docVariable.mockReturnValueOnce('aaa');
     expect(proxyDoc['xxx']).toBe('aaa');
     // >>> null
@@ -119,7 +134,9 @@ describe('property document', () => {
     expect(proxyDoc['xxx']).toBe('bbb');
 
     expect(proxyDoc['foo'] === fakeDoc.foo).toBe(false);
+  });
 
+  test('proxyDocument setter/has/delete', () => {
     proxyDoc.bar = jest.fn();
     expect(proxyDoc['bar'] === fakeDoc.bar).toBe(false);
     expect('bar' in fakeDoc).toBe(false);
@@ -129,8 +146,6 @@ describe('property document', () => {
 
     proxyDoc.title = 'title';
     expect(fakeDoc.title).toBe('title');
-
-    spy.mockRestore();
   });
 });
 
@@ -153,12 +168,17 @@ describe('property window', () => {
     // >>> undefined
     expect(proxyWin.name).toBe('');
 
-    proxyWin.onclick = jest.fn();
+    const onclick = jest.fn();
+    proxyWin.onclick = onclick;
     expect('onclick' in proxyWin).toBe(true);
-    proxyWin.bar = jest.fn();
+    expect(proxyWin.onclick).toBe(onclick);
+
+    const bar = jest.fn();
+    proxyWin.bar = bar;
     expect(sandbox.setVariable).toBeCalled();
     expect('bar' in proxyWin).toBe(true);
     expect(typeof proxyWin.bar).toBe('function');
+    expect(proxyWin.bar === bar).toBe(true);
     delete proxyWin.bar;
     expect('bar' in proxyWin).toBe(false);
 
