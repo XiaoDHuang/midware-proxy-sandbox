@@ -9,7 +9,8 @@
     "test": "rimraf coverage && jest --coverage",
     "build": "rimraf lib && rollup -c",
     "build:w": "npm run build -- -w",
-    "pub": "npm run build && npm publish --access public"
+    "pub": "npm run build && npm publish --access public",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@satumjs/async-override": "^0.1.4",
@@ -27,6 +28,7 @@
     "@types/jest": "^27.0.1",
     "@umijs/fabric": "2.10.2",
     "coveralls": "^3.1.1",
+    "husky": "^8.0.1",
     "jest": "^27.1.1",
     "rimraf": "^3.0.2",
     "rollup": "^2.54.0",
