@@ -50,7 +50,10 @@ describe('@satumjs/midware-proxy-sandbox test', () => {
     sandbox.init().then(() => {
       expect(sandbox.body).toEqual(appBody);
       expect(createElement).toBeCalledTimes(2);
+
       sandbox.vmContext.document.createElement();
+      expect(satumMicroCreateElementFactory).toBeCalled();
+
       appBody.parentNode = null;
       sandbox.destory().then(() => {
         appBody.parentNode = { removeChild: jest.fn() };
