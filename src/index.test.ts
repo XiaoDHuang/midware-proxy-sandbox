@@ -8,7 +8,7 @@ jest.mock('./properties');
 describe('@satumjs/midware-proxy-sandbox test', () => {
   let Sandbox: any;
   beforeEach(() => {
-    const fakeSystem = { options: {}, set: jest.fn() } as any;
+    const fakeSystem = { options: {}, set: jest.fn(), use: jest.fn() } as any;
     const microApps: any[] = [{ name: 'foo' }, { name: 'bar' }];
     const next = jest.fn();
     proxySandboxMidware(fakeSystem, microApps, next);
@@ -32,7 +32,7 @@ describe('@satumjs/midware-proxy-sandbox test', () => {
 
     expect(sandbox.vmContext === window[sandbox.fakeWindowName]).toBe(true);
     expect(sandbox.vmContext['DRIVE_BY_SATUMMICRO']).toBe(true);
-    (getFakeDocument as any).mock.calls[0][0]();
+    // (getFakeDocument as any).mock.calls[0][0]();
     dateSpy.mockRestore();
   });
 
@@ -75,7 +75,7 @@ describe('@satumjs/midware-proxy-sandbox runScript test', () => {
   let wrapper: HTMLElement;
   let childNode: HTMLElement;
   beforeEach(() => {
-    const fakeSystem = { options: {}, set: jest.fn() } as any;
+    const fakeSystem = { options: {}, set: jest.fn(), use: jest.fn() } as any;
     const microApps: any[] = [{ name: 'foo' }, { name: 'bar' }];
     const next = jest.fn();
     proxySandboxMidware(fakeSystem, microApps, next);
@@ -151,14 +151,14 @@ describe('@satumjs/midware-proxy-sandbox runScript test', () => {
     sandbox.exec(getJSCode as any).then(() => {
       expect(fakeDoc.createElement).toBeCalledTimes(1);
       expect(childNode.setAttribute).toBeCalledTimes(2);
-      expect((childNode as any).text).toBe("with(window['foo']){\naaa\n}");
+      expect((childNode as any).text).toMatch("with(window['foo']){\naaa\n}");
 
       // next to syncFile
       fakeDoc.createElement.mockReturnValueOnce(childNode);
       const syncFile = { source: { content: Promise.resolve('bbb') } };
       const syncFile2 = { source: { content: Promise.resolve() } };
       sandbox.exec((() => Promise.resolve([syncFile, syncFile2])) as any).then(() => {
-        expect((childNode as any).text).toBe("with(window['foo']){\nbbb\n}");
+        expect((childNode as any).text).toMatch("with(window['foo']){\nbbb\n}");
         spy.mockRestore();
         done();
       });

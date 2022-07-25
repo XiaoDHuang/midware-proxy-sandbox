@@ -1,19 +1,39 @@
 /* prettier-ignore */ import {
   MidwareSystem, IMicroApp, MidwareName, NextFn, FileType, KeyObject, ISandbox, TSandboxConfig, SandboxGetCode,
-  ModuleItem, fakeWrapTagName, fakeTagName,
+  ModuleItem, fakeWrapTagName, fakeTagName,PluginEvent, FakeLocation, FakeDocument
 } from '@satumjs/types';
 import { isFullUrl, printLog, toArray } from '@satumjs/utils';
-import { getFakeDocument, getFakeHead, getFakeLocation, getFakeWindow, handleWinEvent, removeAllWinEvents, CtxEventDB } from './properties';
+import { 
+  getFakeDocument,
+  getFakeDocumentElement, 
+  getFakeHead, 
+  getFakeBody, 
+  getFakeLocation, 
+  getFakeWindow, 
+  handleWinEvent, 
+  handleDocEvent, 
+  handleHtmlEvent, 
+  removeAllWinEvents, 
+  CtxEventDB, 
+  removeAllDocEvents, 
+  removeAllHtmlEvents,
+  getFakeWinBySandbox,
+} from './properties';
 import { satumMicroCreateElementFactory } from '@satumjs/async-override';
-
+import { ProxySandboxOptions } from './type';
+import {  } from './properties/window';
+import { fontFaceMidware, shadowRootMidware} from './midware';
 class ProxySandbox implements ISandbox {
   static microApps: IMicroApp[];
-  static options: KeyObject<any>;
+  static options: ProxySandboxOptions;
 
   readonly appName: TSandboxConfig['appName'];
   private readonly fakeWindowName: string;
   private readonly ctxWinEventDatabase: CtxEventDB;
+  private readonly ctxDocEventDatabase: CtxEventDB;
+  private readonly ctxHtmlEventDatabase: CtxEventDB;
   private _body: ISandbox['body'];
+  private _appWrap: ISandbox['appWrap'];
   private _vmContext: ISandbox['vmContext'];
   actorId: TSandboxConfig['actorId'];
 
@@ -23,9 +43,13 @@ class ProxySandbox implements ISandbox {
     this.appName = appName;
     this.actorId = actorId;
     this.ctxWinEventDatabase = [];
+    this.ctxDocEventDatabase = [];
+    this.ctxHtmlEventDatabase = [];
     this.fakeWindowName = fakeWindowName || `fakeWindow${Date.now()}`;
 
     handleWinEvent(this, this.ctxWinEventDatabase);
+    handleDocEvent(this, this.ctxDocEventDatabase);
+    handleHtmlEvent(this, this.ctxHtmlEventDatabase);
 
     const originMutationObserverObserve = MutationObserver.prototype.observe;
     MutationObserver.prototype.observe = function (...args: any[]) {
@@ -38,16 +62,23 @@ class ProxySandbox implements ISandbox {
     return this._body;
   }
 
+  get appWrap() {
+    return this._appWrap;
+  }
+
   get vmContext() {
     if (this._vmContext) return this._vmContext;
 
     const options = ProxySandbox.options;
     const locationPropsValueMap: KeyObject<string> = {};
+
+    const fackeDoc =  getFakeDocument(this.ctxDocEventDatabase, () => getFakeWinBySandbox(this), () => getFakeDocumentElement(this), () => getFakeHead(this), () => getFakeBody(this), options);
+    const fakeLocation = getFakeLocation(locationPropsValueMap, options, () => getFakeWinBySandbox(this));
     const fakeWin = getFakeWindow(
       this,
       this.ctxWinEventDatabase,
-      getFakeDocument(() => getFakeHead(this), options),
-      getFakeLocation(locationPropsValueMap),
+      fackeDoc,
+      fakeLocation,
       options,
     );
 
@@ -66,6 +97,7 @@ class ProxySandbox implements ISandbox {
       const wrapper = document.createElement(fakeWrapTagName);
       appBody.appendChild(wrapper);
       this._body = appBody;
+      this._appWrap = wrapper;
     }
 
     if (!this.vmContext['createElementOverrided']) {
@@ -74,7 +106,14 @@ class ProxySandbox implements ISandbox {
         const ctxDocument = this.vmContext.document;
         const ctxCreateElement = document.createElement.bind(document);
         ctxDocument.createElement = (tagName: keyof HTMLElementTagNameMap, options: ElementCreationOptions) => {
-          return satumMicroCreateElementFactory(app, ctxCreateElement, this.fakeWindowName)(tagName, options) as HTMLElement;
+          const el = satumMicroCreateElementFactory(app, ctxCreateElement, this.fakeWindowName)(tagName, options) as HTMLElement;
+          el && Object.defineProperty(el, 'ownerDocument', {
+            get:() => {
+              return this.vmContext.document;
+            }
+          });
+
+          return el;
         };
       }
       this.vmContext['createElementOverrided'] = true;
@@ -134,12 +173,14 @@ class ProxySandbox implements ISandbox {
                 script.text = realSource;
               } else {
                 script.text = `with(window['${this.fakeWindowName}']){\n${source}\n}`;
+                script.text = `(function(window, self, globalThis){\n${script.text}\n}).bind(window['${this.fakeWindowName}'])(window['${this.fakeWindowName}'], window['${this.fakeWindowName}'], window['${this.fakeWindowName}']);`
               }
               this.body.appendChild(script);
             } else if (source['content']) {
               (source['content'] as Promise<string>).then((s) => {
                 if (!s) return;
                 script.text = `with(window['${this.fakeWindowName}']){\n${s}\n}`;
+                script.text = `(function(window, self, globalThis){\n${script.text}\n}).bind(window['${this.fakeWindowName}'])(window['${this.fakeWindowName}'], window['${this.fakeWindowName}'], window['${this.fakeWindowName}']);`
                 this.body.appendChild(script);
               });
             }
@@ -159,13 +200,23 @@ class ProxySandbox implements ISandbox {
     return this.remove().then(() => {
       printLog('eventsRemove', `actor \`${this.actorId}\` will remove all events from window`);
       removeAllWinEvents(this.ctxWinEventDatabase);
+      removeAllDocEvents(this.ctxDocEventDatabase );
+      removeAllHtmlEvents(this.ctxHtmlEventDatabase);
     });
   }
 }
 
+
 export default function proxySandboxMidware(system: MidwareSystem, microApps: IMicroApp[], next: NextFn) {
   ProxySandbox.microApps = microApps;
-  ProxySandbox.options = system.options;
+  const {useSandBox = true} = ProxySandbox.options = system.options as ProxySandboxOptions;
   system.set(MidwareName.Sandbox, ProxySandbox);
+
+  if(useSandBox) {
+    system.use(fontFaceMidware);
+    system.use(shadowRootMidware);
+  }
+
   next();
 }
+
