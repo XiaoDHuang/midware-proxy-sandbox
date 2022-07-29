@@ -13,7 +13,9 @@ satumCore.use(proxySandboxMidware);
 
 // use options
 // satumCore.use(proxySandboxMidware, {
-//   winVariable(k, fakeWin, realWin): any,
-//   docVariable(k, fakeDoc, realDoc): any,
+//   useSandBox: true, // 启用css shadow-dom 默认为true
+//   winVariable(k, fakeWin, realWin): any,   // 劫持fakeWin属性
+//   docVariable(k, fakeDoc, realDoc): any,   // 劫持docVariable属性
+//   locationVariable(k, locationProx, location, fakeWin )  // 劫持location属性
 // });
 ```
