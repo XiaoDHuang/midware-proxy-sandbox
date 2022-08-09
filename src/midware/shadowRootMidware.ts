@@ -1,6 +1,6 @@
 import { IMicroApp, MidwareSystem, NextFn, PluginEvent } from "@satumjs/types";
 
-function traverseNode(el: HTMLElement, vmContext:any) {
+export function traverseNode(el: HTMLElement, vmContext:any) {
 
   if (el.ownerDocument === document) {
     Object.defineProperty(el, 'ownerDocument', {
@@ -16,7 +16,7 @@ function traverseNode(el: HTMLElement, vmContext:any) {
   })
 }
 
-const getAppShadowRoot = (container: String | HTMLElement, vmContext: any) => {
+export const getAppShadowRoot = (container: String | HTMLElement, vmContext: any) => {
   let shadowRoot:any = null;
   if (typeof container === 'string') {
     container = document.querySelector(container) as any;

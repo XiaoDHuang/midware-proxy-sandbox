@@ -1,7 +1,8 @@
 jest.mock('@satumjs/async-override');
 import { FakeDocument } from '@satumjs/types';
 import { satumMicroHeadAppendChildFactory } from '@satumjs/async-override';
-import { CtxEventDB, handleWinEvent, removeAllWinEvents, getFakeLocation, getFakeHead, getFakeDocument, getFakeWindow } from '.';
+import { CtxEventDB, handleWinEvent, removeAllWinEvents, getFakeLocation, getFakeWindow } from './index';
+import { getFakeHead, getFakeDocument } from '../document';
 import { ProxySandboxOptions } from 'type';
 
 describe('property event', () => {

@@ -1,6 +1,6 @@
 import { FakeDocument, FakeLocation, FakeWindow, ISandbox, KeyObject } from '@satumjs/types';
 import { ProxySandboxOptions } from '../type';
-import { getCleanWindow } from './cleanWin';
+import { getPureWindow } from './pureWin';
 import { CtxEventDB } from './event';
 import { bindFuncton } from './function';
 
@@ -16,8 +16,8 @@ export function getFakeWindow(
   options: ProxySandboxOptions,
 ) {
   const proxyWin = Object.create(null);
-  const cleanWin = getCleanWindow();
-
+  const pureWin = getPureWindow();
+  
   const fakeWin: FakeWindow = new Proxy(proxyWin, {
     get(_: Window, k: PropertyKey) {
       if (['self', 'window', 'top', 'parent'].includes(k as string)) return fakeWin;
@@ -38,7 +38,7 @@ export function getFakeWindow(
 
         // 来自用户自定义全局属性， 绑定沙盒， 复制静态属性
         // window.func.staticName = 'name'的问题
-        if (cleanWin && !(k in cleanWin) && (k in proxyWin))  return bindFuncton(val, proxyWin);
+        if (pureWin && !(k in pureWin) && (k in proxyWin))  return bindFuncton(val, proxyWin);
         
         if (k in window) return k.startsWith('on') ? val : val.bind(window);
       }
@@ -56,7 +56,7 @@ export function getFakeWindow(
     },
     has(_: any, k: PropertyKey): boolean {
       // 来自用户自定义全局属性， 劫持到沙盒中
-      if (cleanWin && !(k in cleanWin)) return true;
+      if (pureWin && !(k in pureWin)) return true;
 
       return k in proxyWin || k in window;
     },

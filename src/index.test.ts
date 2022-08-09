@@ -1,9 +1,13 @@
 jest.mock('@satumjs/async-override');
 import { FileType } from '@satumjs/types';
 import { satumMicroCreateElementFactory } from '@satumjs/async-override';
-import proxySandboxMidware from '.';
-import { getFakeWindow, getFakeDocument } from './properties';
+import proxySandboxMidware from './index';
+import { getFakeWindow } from './properties';
+import { getFakeDocument } from './document'
+
+
 jest.mock('./properties');
+jest.mock('./document');
 
 describe('@satumjs/midware-proxy-sandbox test', () => {
   let Sandbox: any;
@@ -14,7 +18,9 @@ describe('@satumjs/midware-proxy-sandbox test', () => {
     proxySandboxMidware(fakeSystem, microApps, next);
     expect(fakeSystem.set).toBeCalled();
     Sandbox = fakeSystem.set.mock.calls[0][1];
+  
     (getFakeWindow as any).mockReturnValue({} as any);
+    (getFakeDocument as any).mockReturnValue({removeEventListener: jest.fn(), addEventListener: jest.fn()})
   });
 
   test('new Sandbox', () => {

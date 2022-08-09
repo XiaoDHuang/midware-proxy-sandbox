@@ -4,21 +4,24 @@
 } from '@satumjs/types';
 import { isFullUrl, printLog, toArray } from '@satumjs/utils';
 import { 
+  getFakeLocation, 
+  getFakeWindow, 
+  handleWinEvent,
+  removeAllWinEvents, 
+  CtxEventDB, 
+  getFakeWinBySandbox,
+} from './properties';
+import {
   getFakeDocument,
   getFakeDocumentElement, 
   getFakeHead, 
   getFakeBody, 
-  getFakeLocation, 
-  getFakeWindow, 
-  handleWinEvent, 
-  handleDocEvent, 
-  handleHtmlEvent, 
-  removeAllWinEvents, 
-  CtxEventDB, 
+  CtxEventDB as CtxEventDocDB,
   removeAllDocEvents, 
   removeAllHtmlEvents,
-  getFakeWinBySandbox,
-} from './properties';
+  handleDocEvent,
+  handleHtmlEvent,
+} from './document'
 import { satumMicroCreateElementFactory } from '@satumjs/async-override';
 import { ProxySandboxOptions } from './type';
 import {  } from './properties/window';
@@ -30,10 +33,9 @@ class ProxySandbox implements ISandbox {
   readonly appName: TSandboxConfig['appName'];
   private readonly fakeWindowName: string;
   private readonly ctxWinEventDatabase: CtxEventDB;
-  private readonly ctxDocEventDatabase: CtxEventDB;
-  private readonly ctxHtmlEventDatabase: CtxEventDB;
+  private readonly ctxDocEventDatabase: CtxEventDocDB;
+  private readonly ctxHtmlEventDatabase: CtxEventDocDB;
   private _body: ISandbox['body'];
-  private _appWrap: ISandbox['appWrap'];
   private _vmContext: ISandbox['vmContext'];
   actorId: TSandboxConfig['actorId'];
 
@@ -60,10 +62,6 @@ class ProxySandbox implements ISandbox {
 
   get body() {
     return this._body;
-  }
-
-  get appWrap() {
-    return this._appWrap;
   }
 
   get vmContext() {
@@ -97,7 +95,6 @@ class ProxySandbox implements ISandbox {
       const wrapper = document.createElement(fakeWrapTagName);
       appBody.appendChild(wrapper);
       this._body = appBody;
-      this._appWrap = wrapper;
     }
 
     if (!this.vmContext['createElementOverrided']) {

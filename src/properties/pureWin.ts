@@ -5,6 +5,6 @@ const iframe = document.createElement('iframe');
 iframe.style.display = 'none';
 document.body.append(iframe);
 
-export function getCleanWindow() {
+export function getPureWindow() {
   return iframe.contentWindow;
 }
